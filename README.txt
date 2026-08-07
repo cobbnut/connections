@@ -1,4 +1,4 @@
-BRUCE CONNECTIONS
+CONNECTIONS
 
 Files:
   index.html       The game itself.
