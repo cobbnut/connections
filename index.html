@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>Connections</title>
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #111111;
+            --muted: #666666;
+            --tile: #efefe6;
+            --tile-selected: #5a594e;
+            --tile-selected-text: #ffffff;
+            --border: #111111;
+
+            --yellow: #f9df6d;
+            --green: #a0c35a;
+            --blue: #b0c4ef;
+            --purple: #ba81c5;
+
+            --radius: 7px;
+            --gap: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            width: min(100%, 680px);
+            padding:
+                max(16px, env(safe-area-inset-top))
+                14px
+                max(24px, env(safe-area-inset-bottom));
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0 0 7px;
+            font-size: clamp(28px, 8vw, 42px);
+            line-height: 1;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        .solved-groups {
+            display: grid;
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .solved-group {
+            min-height: 86px;
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .solved-group.yellow { background: var(--yellow); }
+        .solved-group.green  { background: var(--green); }
+        .solved-group.blue   { background: var(--blue); }
+        .solved-group.purple { background: var(--purple); }
+
+        .solved-group strong {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .solved-group span {
+            font-size: 14px;
+            line-height: 1.35;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--gap);
+        }
+
+        .tile {
+            border: 0;
+            border-radius: var(--radius);
+            min-width: 0;
+            aspect-ratio: 1.35 / 1;
+            padding: 6px;
+            background: var(--tile);
+            color: var(--text);
+            font: inherit;
+            font-size: clamp(12px, 3.4vw, 16px);
+            font-weight: 700;
+            line-height: 1.05;
+            cursor: pointer;
+            overflow-wrap: anywhere;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tile.selected {
+            background: var(--tile-selected);
+            color: var(--tile-selected-text);
+        }
+
+        .status {
+            min-height: 30px;
+            margin: 18px 0 8px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .mistakes {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .mistake-dot {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #5a594e;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 9px;
+        }
+
+        .control {
+            border: 1.5px solid var(--border);
+            border-radius: 999px;
+            padding: 10px 17px;
+            background: #ffffff;
+            color: #111111;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .control.primary {
+            background: #111111;
+            color: #ffffff;
+        }
+
+        .control:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 22px;
+            padding: 18px;
+            border-top: 1px solid #dddddd;
+        }
+
+        .message h2 {
+            margin: 0 0 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .shake {
+            animation: shake 0.35s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @media (max-width: 430px) {
+            .app {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            :root {
+                --gap: 5px;
+            }
+
+            .tile {
+                padding: 4px 2px;
+                font-size: 11px;
+            }
+
+            .solved-group {
+                min-height: 78px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="app">
+        <header>
+            <h1 id="title">Connections</h1>
+            <p id="subtitle" class="subtitle">Find four groups of four connected words</p>
+        </header>
+
+        <section id="solvedGroups" class="solved-groups" aria-live="polite"></section>
+
+        <section id="grid" class="grid" aria-label="Puzzle words"></section>
+
+        <div id="status" class="status" aria-live="polite"></div>
+
+        <div class="mistakes">
+            <span>Mistakes remaining:</span>
+            <span id="mistakeDots" aria-label="Mistakes remaining"></span>
+        </div>
+
+        <div class="controls">
+            <button id="shuffleButton" class="control" type="button">Shuffle</button>
+            <button id="deselectButton" class="control" type="button">Deselect all</button>
+            <button id="submitButton" class="control primary" type="button" disabled>Submit</button>
+        </div>
+
+        <section id="endMessage" class="message hidden">
+            <h2 id="endTitle"></h2>
+            <p id="endText"></p>
+            <button id="restartButton" class="control" type="button">Play again</button>
+        </section>
+    </main>
+
+    <!--
+        The puzzle itself lives in this separate file.
+        It is still a completely static website: no database or server code is needed.
+    -->
+    <script src="puzzle-data.js"></script>
+
+    <script>
+        "use strict";
+
+        /**
+         * Connections-style static browser game.
+         *
+         * PURPOSE:
+         *   Runs the puzzle defined in puzzle-data.js.
+         *
+         * TAKES:
+         *   window.PUZZLE_DATA containing four groups of four words.
+         *
+         * RETURNS:
+         *   An interactive game rendered entirely in the browser.
+         */
+
+        const MAX_MISTAKES = 4;
+
+        const titleElement = document.getElementById("title");
+        const subtitleElement = document.getElementById("subtitle");
+        const gridElement = document.getElementById("grid");
+        const solvedGroupsElement = document.getElementById("solvedGroups");
+        const statusElement = document.getElementById("status");
+        const mistakeDotsElement = document.getElementById("mistakeDots");
+        const shuffleButton = document.getElementById("shuffleButton");
+        const deselectButton = document.getElementById("deselectButton");
+        const submitButton = document.getElementById("submitButton");
+        const endMessageElement = document.getElementById("endMessage");
+        const endTitleElement = document.getElementById("endTitle");
+        const endTextElement = document.getElementById("endText");
+        const restartButton = document.getElementById("restartButton");
+
+        let tiles = [];
+        let selectedWords = new Set();
+        let solvedGroupIndexes = new Set();
+        let mistakesRemaining = MAX_MISTAKES;
+        let gameOver = false;
+
+        /**
+         * Randomises the order of an array using Fisher-Yates.
+         *
+         * @param {Array} items - Items to shuffle.
+         * @returns {Array} A new shuffled array.
+         */
+        function shuffled(items) {
+            const result = [...items];
+
+            for (let i = result.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+
+            return result;
+        }
+
+        /**
+         * Checks the puzzle data before the game starts.
+         *
+         * @returns {void}
+         */
+        function validatePuzzle() {
+            if (!window.PUZZLE_DATA || !Array.isArray(window.PUZZLE_DATA.groups)) {
+                throw new Error("PUZZLE_DATA.groups is missing.");
+            }
+
+            if (window.PUZZLE_DATA.groups.length !== 4) {
+                throw new Error("The puzzle must contain exactly four groups.");
+            }
+
+            const allWords = [];
+
+            window.PUZZLE_DATA.groups.forEach((group, index) => {
+                if (!Array.isArray(group.words) || group.words.length !== 4) {
+                    throw new Error(`Group ${index + 1} must contain exactly four words.`);
+                }
+
+                allWords.push(...group.words);
+            });
+
+            if (new Set(allWords).size !== 16) {
+                throw new Error("All 16 puzzle entries must be unique.");
+            }
+        }
+
+        /**
+         * Starts or restarts the game.
+         *
+         * @returns {void}
+         */
+        function initialiseGame() {
+            validatePuzzle();
+
+            titleElement.textContent = window.PUZZLE_DATA.title || "Connections";
+            subtitleElement.textContent =
+                window.PUZZLE_DATA.subtitle ||
+                "Find four groups of four connected words";
+
+            tiles = shuffled(
+                window.PUZZLE_DATA.groups.flatMap((group, groupIndex) =>
+                    group.words.map(word => ({
+                        word,
+                        groupIndex
+                    }))
+                )
+            );
+
+            selectedWords = new Set();
+            solvedGroupIndexes = new Set();
+            mistakesRemaining = MAX_MISTAKES;
+            gameOver = false;
+
+            solvedGroupsElement.innerHTML = "";
+            statusElement.textContent = "";
+            endMessageElement.classList.add("hidden");
+
+            render();
+        }
+
+        /**
+         * Redraws the current board and controls.
+         *
+         * @returns {void}
+         */
+        function render() {
+            renderGrid();
+            renderMistakes();
+
+            submitButton.disabled =
+                gameOver || selectedWords.size !== 4;
+
+            shuffleButton.disabled = gameOver;
+            deselectButton.disabled = gameOver || selectedWords.size === 0;
+        }
+
+        /**
+         * Draws all unsolved tiles.
+         *
+         * @returns {void}
+         */
+        function renderGrid() {
+            gridElement.innerHTML = "";
+
+            tiles
+                .filter(tile => !solvedGroupIndexes.has(tile.groupIndex))
+                .forEach(tile => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "tile";
+                    button.textContent = tile.word;
+
+                    if (selectedWords.has(tile.word)) {
+                        button.classList.add("selected");
+                    }
+
+                    button.setAttribute(
+                        "aria-pressed",
+                        selectedWords.has(tile.word) ? "true" : "false"
+                    );
+
+                    button.addEventListener("click", () => toggleTile(tile.word));
+                    gridElement.appendChild(button);
+                });
+        }
+
+        /**
+         * Selects or deselects a tile.
+         *
+         * @param {string} word - Tile text.
+         * @returns {void}
+         */
+        function toggleTile(word) {
+            if (gameOver) {
+                return;
+            }
+
+            if (selectedWords.has(word)) {
+                selectedWords.delete(word);
+            } else if (selectedWords.size < 4) {
+                selectedWords.add(word);
+            }
+
+            statusElement.textContent = "";
+            render();
+        }
+
+        /**
+         * Draws the remaining-mistake dots.
+         *
+         * @returns {void}
+         */
+        function renderMistakes() {
+            mistakeDotsElement.innerHTML = "";
+
+            for (let i = 0; i < mistakesRemaining; i += 1) {
+                const dot = document.createElement("span");
+                dot.className = "mistake-dot";
+                mistakeDotsElement.appendChild(dot);
+            }
+        }
+
+        /**
+         * Handles a submitted set of four selected words.
+         *
+         * @returns {void}
+         */
+        function submitSelection() {
+            if (gameOver || selectedWords.size !== 4) {
+                return;
+            }
+
+            const selected = [...selectedWords];
+
+            const matchedGroupIndex = window.PUZZLE_DATA.groups.findIndex(
+                (group, index) =>
+                    !solvedGroupIndexes.has(index) &&
+                    selected.every(word => group.words.includes(word))
+            );
+
+            if (matchedGroupIndex >= 0) {
+                solveGroup(matchedGroupIndex);
+                return;
+            }
+
+            const oneAway = window.PUZZLE_DATA.groups.some((group, index) => {
+                if (solvedGroupIndexes.has(index)) {
+                    return false;
+                }
+
+                const matches = selected.filter(word => group.words.includes(word)).length;
+                return matches === 3;
+            });
+
+            mistakesRemaining -= 1;
+            statusElement.textContent = oneAway ? "One away..." : "Not quite";
+
+            gridElement.classList.remove("shake");
+            void gridElement.offsetWidth;
+            gridElement.classList.add("shake");
+
+            if (mistakesRemaining <= 0) {
+                finishGame(false);
+            }
+
+            render();
+        }
+
+        /**
+         * Marks a group as solved and displays it above the board.
+         *
+         * @param {number} groupIndex - Index of the solved group.
+         * @returns {void}
+         */
+        function solveGroup(groupIndex) {
+            const group = window.PUZZLE_DATA.groups[groupIndex];
+
+            solvedGroupIndexes.add(groupIndex);
+            selectedWords.clear();
+            statusElement.textContent = "";
+
+            const groupElement = document.createElement("div");
+            groupElement.className = `solved-group ${group.colour}`;
+
+            const nameElement = document.createElement("strong");
+            nameElement.textContent = group.name;
+
+            const wordsElement = document.createElement("span");
+            wordsElement.textContent = group.words.join(", ");
+
+            groupElement.append(nameElement, wordsElement);
+            solvedGroupsElement.appendChild(groupElement);
+
+            if (solvedGroupIndexes.size === 4) {
+                finishGame(true);
+            }
+
+            render();
+        }
+
+        /**
+         * Ends the game.
+         *
+         * @param {boolean} won - Whether all groups were solved.
+         * @returns {void}
+         */
+        function finishGame(won) {
+            gameOver = true;
+            selectedWords.clear();
+
+            if (!won) {
+                revealRemainingGroups();
+            }
+
+            endTitleElement.textContent = won ? "Brilliant!" : "So close!";
+            endTextElement.textContent = won
+                ? "You found all four connections."
+                : "The remaining groups are shown above.";
+
+            endMessageElement.classList.remove("hidden");
+        }
+
+        /**
+         * Reveals every unsolved group after the player runs out of mistakes.
+         *
+         * @returns {void}
+         */
+        function revealRemainingGroups() {
+            window.PUZZLE_DATA.groups.forEach((group, index) => {
+                if (solvedGroupIndexes.has(index)) {
+                    return;
+                }
+
+                solvedGroupIndexes.add(index);
+
+                const groupElement = document.createElement("div");
+                groupElement.className = `solved-group ${group.colour}`;
+
+                const nameElement = document.createElement("strong");
+                nameElement.textContent = group.name;
+
+                const wordsElement = document.createElement("span");
+                wordsElement.textContent = group.words.join(", ");
+
+                groupElement.append(nameElement, wordsElement);
+                solvedGroupsElement.appendChild(groupElement);
+            });
+        }
+
+        shuffleButton.addEventListener("click", () => {
+            const unsolvedTiles = tiles.filter(
+                tile => !solvedGroupIndexes.has(tile.groupIndex)
+            );
+
+            const solvedTiles = tiles.filter(
+                tile => solvedGroupIndexes.has(tile.groupIndex)
+            );
+
+            tiles = [...shuffled(unsolvedTiles), ...solvedTiles];
+            render();
+        });
+
+        deselectButton.addEventListener("click", () => {
+            selectedWords.clear();
+            statusElement.textContent = "";
+            render();
+        });
+
+        submitButton.addEventListener("click", submitSelection);
+        restartButton.addEventListener("click", initialiseGame);
+
+        initialiseGame();
+    </script>
+</body>
+</html>
