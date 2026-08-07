@@ -9,28 +9,28 @@
  *   - words: exactly four entries
  */
 window.PUZZLE_DATA = {
-    title: "Bruce's Connections",
+    title: "Charlotte's Conniptions",
     subtitle: "Find four groups of four connected words",
     groups: [
         {
-            name: "THINGS THAT ARE RED",
+            name: "Ways of delivering words vocally",
             colour: "yellow",
-            words: ["APPLE", "ROSE", "STOP SIGN", "RUBY"]
+            words: ["CHORUSED", "INTONED", "RECITED", "SUNG"]
         },
         {
-            name: "KINDS OF DANCE",
+            name: "Normally involve four people",
             colour: "green",
-            words: ["SALSA", "TANGO", "WALTZ", "RUMBA"]
+            words: ["BRIDGE", "DOUBLES", "PICKLEBALL", "QUARTET"]
         },
         {
-            name: "CAN FOLLOW 'BLUE'",
+            name: "Add 'IN' to make a new word",
             colour: "blue",
-            words: ["BIRD", "BELL", "MOON", "WHALE"]
+            words: ["WITH", "THERE", "BREAK", "DRIVE"]
         },
         {
-            name: "WORDS WITH SILENT FIRST LETTERS",
+            name: "EST (four meanings of the abbreviation)",
             colour: "purple",
-            words: ["KNIFE", "GNOME", "PSALM", "WRIST"]
+            words: ["SINCE", "SMALL ESTIMATE", "EASTERN STANDARD TIME", "SUPERLATIVE"]
         }
     ]
 };
